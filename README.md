@@ -11,6 +11,8 @@ Set the environment variables JULIA_CFLAGS, JULIA_CFLAGS_BIS and JULIA_LDFLAGS.
 
 Think later to put this in your `.bashrc` or `.zshrc` 
 
+### getting started
+
 ```v
 import vj as j
 
