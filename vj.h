@@ -15,162 +15,163 @@
 // }
 
 
-void* vr_get_ary(char* cmd,int* type,int* len) {
+void* vj_get_ary(char* cmd,int* type,int* len) {
   int  errorOccurred,status, i;
 
 }
-    
-/*
-//   text = PROTECT(allocVector(STRSXP, 1)); 
-// //printf("cmd: %s\n",cmdString);
-//   SET_STRING_ELT(text, 0, mkChar(cmd));
-//   expr = PROTECT(RR_ParseVector(text, -1, &status));
-//   if (status != PARSE_OK) {
-//     printf("Parsing error in: %s\n",cmd);
-//     UNPROTECT(2);
-//     return (void*)NULL;
-//   }
-//   
-//   ans = R_tryEval(VECTOR_ELT(expr, 0),R_GlobalEnv,&errorOccurred);
-//   if(errorOccurred) {
-//     //fflush(stderr);
-//     printf("Exec error in: %s\n",cmd);
-//     UNPROTECT(2);
-//     return (void*)NULL;
-//   }
-//   UNPROTECT(2);
-//   //printf("eval_get\n");
-  return util_SEXP2C(ans,type,len);
+
+int vj_typeof(jl_value_t *res) {
+  int type;
+  jl_value_t *tmp;
+  size_t d, nd;
+  if (strcmp(jl_typeof_str(res),"Float64")==0) {
+    type = 64;
+  } else if(strcmp(jl_typeof_str(res),"Float32")==0) {
+    type = 32;
+  } else if(strcmp(jl_typeof_str(res),"Int64")==0 || strcmp(jl_typeof_str(res),"Int32")==0) {
+    type = 1;
+  } else if(strcmp(jl_typeof_str(res),"Bool") == 0) {
+    type = 2;
+  } else if(strcmp(jl_typeof_str(res),"String")==0 || strcmp(jl_typeof_str(res),"ASCIIString")==0 || strcmp(jl_typeof_str(res),"UTF8String")==0) {
+    type = 3;
+  } else if(strcmp(jl_typeof_str(res),"Complex")==0) {
+    type = 4;
+  } else if(strcmp(jl_typeof_str(res),"Regex")==0) {
+    type = 1000;
+  } else if(strcmp(jl_typeof_str(res),"DataType")==0) {
+    type = 2000;
+  } else if(strcmp(jl_typeof_str(res),"Nothing")==0) {
+    type = 0;
+  } else if(strcmp(jl_typeof_str(res),"Array")==0 ) {
+    type = 100;
+       nd = jl_array_rank(res);
+        //printf("array_ndims=%d\n",(int)nd);
+        if(nd==1) {//Vector
+         d = jl_array_size(res, 0);
+         if(d > 0) {
+          tmp =  jl_arrayref((jl_array_t *)res,0);
+          type += vj_typeof(tmp);
+         }
+        }
+  } else if(strcmp(jl_typeof_str(res),"Tuple")==0 ) {
+    type = 200;
+  }
+  return type;
 }
 
-void* jl_value_to_C(jl_value_t *res) {
+jl_value_t* vj_alloc_array(int typ, int n) {
+  jl_value_t *arr_type;
+  switch(typ) {
+    case 101: {
+      arr_type=jl_apply_array_type((jl_value_t*)jl_long_type, 1);
+      break;
+    }
+    case 102: {
+      arr_type=jl_apply_array_type((jl_value_t*)jl_bool_type, 1);
+      break;
+    }
+    case 132: {
+      arr_type=jl_apply_array_type((jl_value_t*)jl_float32_type, 1);
+      break;
+    }
+    case 164: {
+      arr_type=jl_apply_array_type((jl_value_t*)jl_float64_type, 1);
+      break;
+    }
+    case 103: {
+      arr_type=jl_apply_array_type((jl_value_t*)jl_string_type, 1);
+      break;
+    }
+  }
+  return (jl_value_t*)jl_alloc_array_1d(arr_type,n);
+}
+
+void vj_assign(char* name,  jl_value_t* val) {
+  jl_set_global(jl_main_module, jl_symbol(name), val);
+
+}
+
+/*
+void* util_jlvalue2C(jl_value_t *res, int* type,int* len) {
   size_t i=0,k,nd,d;
-  VALUE resRb;
+  void* resC;
   jl_value_t *tmp;
   jl_function_t *call;
 
-  if(res!=NULL) { //=> get a result
-    //printf("typeof=%s\n",jl_typeof_str(res));
-    if(strcmp(jl_typeof_str(res),"Int64")==0 || strcmp(jl_typeof_str(res),"Int32")==0)
-    //if(jl_is_long(res)) //does not work because of DLLEXPORT
-    {
-      //printf("elt=%d\n",jl_unbox_long(res));
-      return INT2FIX(jl_unbox_long(res));
-    }
-    else
-    if(strcmp(jl_typeof_str(res),"Float64")==0)
-    //if(jl_is_float64(res))
-    {
-      return rb_float_new(jl_unbox_float64(res));
-    }
-    else
-    if(strcmp(jl_typeof_str(res),"Float32")==0)
-    //if(jl_is_float64(res))
-    {
-      return rb_float_new(jl_unbox_float32(res));
-    }
-    else
-    if(strcmp(jl_typeof_str(res),"Bool")==0)
-    //if(jl_is_bool(res))
-    {
-      return (jl_unbox_bool(res) ? Qtrue : Qfalse);
-    }
-    else
-    if(strcmp(jl_typeof_str(res),"DataType")==0)
-    {
-      return rb_str_new2(jl_typename_str(res));
-    }
-    else
-    if(strcmp(jl_typeof_str(res),"Nothing")==0)
-    {
-      return Qnil;
-    }
-    else
-    if(strcmp(jl_typeof_str(res),"Complex")==0)
-    //if(jl_is_bool(res))
-    {
-      resRb = rb_eval_string("require('complex');Complex.new(0,0)");
-      rb_iv_set(resRb,"@real",jl_value_to_VALUE(jl_get_field(res, "re")));
-      rb_iv_set(resRb,"@image",jl_value_to_VALUE(jl_get_field(res, "im")));
-      return resRb;
-    }
-    else
-    if(strcmp(jl_typeof_str(res),"Regex")==0)
-    //if(jl_is_bool(res))
-    {
-      // call=(jl_function_t*)jl_get_global(jl_base_module, jl_symbol("show"));
-      // printf("ici\n");
-      // if (call) tmp=jl_call1(call,res);
-      // else printf("call failed!\n");
-      // printf("ici\n");
-      resRb = jl_value_to_VALUE(jl_get_field(res, "pattern"));
-      return resRb;
-    }
-    else
-    if(strcmp(jl_typeof_str(res),"String")==0 || strcmp(jl_typeof_str(res),"ASCIIString")==0 || strcmp(jl_typeof_str(res),"UTF8String")==0)
-    {
-      //printf("value=%s\n",jl_string_ptr(res));
-      return rb_str_new2(jl_string_ptr(res));
-    }
-    else
-    if(strcmp(jl_typeof_str(res),"Array")==0 )
-    //if(jl_is_array(res))
-    {
-      nd = jl_array_rank(res);
-      //printf("array_ndims=%d\n",(int)nd);
-      if(nd==1) {//Vector
-        d = jl_array_size(res, 0);
-        //printf("array_dim[1]=%d\n",(int)d);
-        resRb = rb_ary_new2(d);
-        for(i=0;i<d;i++) {
-          rb_ary_store(resRb,i,jl_value_to_VALUE(jl_arrayref((jl_array_t *)res,i)));
-        }
-        return resRb;
+  if(res!=NULL) {
+    *len = 1;
+    *type = vj_typeof(res);
+    switch(*type) {
+      case 1: {
+        resC = (void*)jl_unbox_long(res);
+        break;
       }
-      //TODO: multidim array ruby equivalent???? Is it necessary
-
-    }
-    else
-    if(strcmp(jl_typeof_str(res),"Tuple")==0 )
-    //if(jl_is_array(res))
-    {
-      d=jl_nfields(res); //Before O.3: d=jl_tuple_len(res);
-      resRb = rb_ary_new2(d);
-      for(i=0;i<d;i++) {
-        //rb_ary_store(resRb,i,jl_value_to_VALUE(jl_tupleref(res,i)));
-        rb_ary_store(resRb,i,jl_value_to_VALUE(jl_fieldref(res,i)));
+      case 64: {
+        *type = 0;
+        resC = (void*)jl_unbox_float64(res);
+        break;
       }
-      return resRb;
-    }
-    //printf("unconverted!!!");
-    resRb=rb_str_new2("__unconverted(");
-    rb_str_cat2(resRb, jl_typeof_str(res));
-    rb_str_cat2(resRb, ")__\n");
-    //printf("%s\n",jl_string_ptr(jl_eval_string("\"$(ans)\"")));
-    // jl_function_t *call=(jl_function_t*)jl_get_global(jl_base_module, jl_symbol("show"));
-    // if (call) jl_call1(call,res);
-    // else printf("call failed!\n");
+      case 32: {
+        *type = 0;
+        resC = (void*)jl_unbox_float32(res);
+        break;
+      }
+      case 2: {
+        resC = (void*)jl_unbox_bool(res);
+        break;
+      }
+      case 3: {
+        *type = 3;
+        resC = (void*)jl_string_ptr(res);
+        break;
+      }
+      // case 100 {
+      //   *nd = jl_array_rank(res);
+      //   //printf("array_ndims=%d\n",(int)nd);
+      //   if(nd==1) {//Vector
+      //     d = jl_array_size(res, 0);
+      //     tmp =  jl_arrayref((jl_array_t *)res,0);
+      //     switch() {
 
-    return resRb;
+      //     }
+
+      //     resC=malloc((*len) * sizeof(char*));
+      //     for(i=0;i<d;i++) {
+      //       resC[i] = jl_value_to_VALUE(jl_arrayref((jl_array_t *)res,i)));
+      //     }
+      //   }
+      // }
+      else {
+        type = -10
+        resC = (void*)false
+      }
+    }
+      
+
+    return resC;
   }
-  //=> No result (command incomplete or syntax error)
-//#ifndef WITH_JULIA_RELEASE
-//  jlapi_print_stderr(); //If this happens but this is really not sure!
-//#endif
-  //printf("incomplete!!!");
-  resRb=rb_str_new2("__incomplete");
-  if(jl_exception_occurred()!=NULL) {
-    rb_str_cat2(resRb, "(");
-      rb_str_cat2(resRb,jl_typeof_str(jl_exception_occurred()));
-    jl_value_t* err=jl_get_field(jl_exception_occurred(),"msg");
-    if(err!=NULL) printf("%s: %s\n",jl_typeof_str(jl_exception_occurred()),jl_string_ptr(err));
-    jl_exception_clear();
-    rb_str_cat2(resRb, ")");
-  }
-  rb_str_cat2(resRb, "__");
-  return resRb;
 }
 
+
+void* vj_eval(char *cmdString, int* type, int* len) {
+  jl_value_t *res;
+  void* resC;
+
+  res=jl_eval_string(cmdString);
+  //printf("cmd=%s\n",cmdString);
+  if (jl_exception_occurred()) {
+            //jl_show(jl_stderr_obj(), jl_exception_occurred());
+            jl_call2(jl_get_function(jl_base_module, "show"), jl_stderr_obj(), jl_exception_occurred());
+            jl_printf(jl_stderr_stream(), "\n");
+            resC=(void*)true;
+  } else {
+    resC=util_jlvalue2C(res, *type, *len);
+  }
+  return resC;
+}
+*/
+
+/*
 jl_value_t* util_C2jl_value(VALUE arr)
 {
   jl_value_t *ans,*elt,*array_type;
