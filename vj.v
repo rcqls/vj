@@ -1,6 +1,6 @@
 module vj
 
-#flag $env('JULIA_CFLAGS')
+#flag -I $env('JULIA_CFLAGS')
 #flag $env('JULIA_CFLAGS_BIS')
 #flag -L $env('JULIA_LDFLAGS')
 
