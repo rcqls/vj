@@ -7,7 +7,7 @@ Set the environment variables JULIA_CFLAGS, JULIA_CFLAGS_BIS and JULIA_LDFLAGS.
 
 ```bash
 ## julia is supposed to be in your PATH
-. ./build_flags_.sh
+. ./build_flags.sh
 ```
 
 The output of ./build_flags.sh can be copied-pasted to your `.bashrc` or `.zshrc` to make the settings permanent 
