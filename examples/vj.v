@@ -1,34 +1,42 @@
 import vj as j
 
 fn main() {
+	// get int array from julia 
 	ai := j.eval('a = [1, 2, 4]')
-	j.eval('println(a * 3)')
-	println('ai = $ai.ints()')
+	j.eval('println(a * 3)') // print in julia
+	println('ai = $ai.ints()') // print in v
+
+	// get string array from julia
 	j.eval('["1", "2", "4"]')
-	a := j.eval('12.9').f64()
+	a := j.f64('12.9') // equivalent to j.eval('12.9').f64()
 	println('a * 2 = ${a * 2}')
-	b := j.eval('true').bool()
+
+	// get bool from julia
+	b := j.bool('true') // equivalent to j.eval('true').bool()
 	println('b = $b')
-	s := j.eval('"toto"').string()
+	s := j.string('"toto"^2 * "titi"') // equivalent to j.eval('"toto"').string()
 	println('s = $s')
 
+	// set a as a float64 julia array
 	j.set_f64s('a', [1.1, 3, 2])
-	println(j.eval('a').f64s())
+	println(j.f64s('a'))
 	j.eval('println(typeof(a))')
 	j.set_f32s('a', [f32(1.1), 3, 2])
-	println(j.eval('a').f32s())
+	println(j.f32s('a'))
 	j.eval('println(typeof(a))')
 
 	j.set_ints('b', [1, 3, 2])
-	println(j.eval('b').ints())
+	println(j.ints('b'))
 
 	j.set_bools('c', [true, true, false])
-	println(j.eval('c').bools())
+	println(j.bools('c'))
 
 	j.set_strings('d', ['tutu', 'ititit'])
-	println(j.eval('d').strings())
+	println(j.strings('d'))
 
 	j.set_string('toto', 'titi')
+	// push newly created toto variable in the d array
 	j.eval('push!(d, toto)')
+	// and print in julia
 	j.eval('println(d)')
 }

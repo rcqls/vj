@@ -99,48 +99,49 @@ pub fn eval(cmd string) Res {
 	}
 }
 
-type Res = []bool | []f32 | []f64 | []int | []string | bool | f32 | f64 | int | string
+// get data from julia
 
-pub fn (r Res) f64() f64 {
-	return if r is f64 { r } else { 0.0 }
+pub fn f64(cmd string) f64 {
+	return eval(cmd).f64()
 }
 
-pub fn (r Res) f32() f32 {
-	return if r is f32 { r } else { f32(0) }
+pub fn f32(cmd string) f32 {
+	return eval(cmd).f32()
 }
 
-pub fn (r Res) int() int {
-	return if r is int { r } else { 0 }
+pub fn bool(cmd string) bool {
+	return eval(cmd).bool()
 }
 
-pub fn (r Res) bool() bool {
-	return if r is bool { r } else { false }
+pub fn int(cmd string) int {
+	return eval(cmd).int()
 }
 
-pub fn (r Res) string() string {
-	return if r is string { r } else { '' }
+pub fn string(cmd string) string {
+	return eval(cmd).string()
 }
 
-pub fn (r Res) f64s() []f64 {
-	return if r is []f64 { r } else { []f64{} }
+pub fn f64s(cmd string) []f64 {
+	return eval(cmd).f64s()
 }
 
-pub fn (r Res) f32s() []f32 {
-	return if r is []f32 { r } else { []f32{} }
+pub fn f32s(cmd string) []f32 {
+	return eval(cmd).f32s()
 }
 
-pub fn (r Res) ints() []int {
-	return if r is []int { r } else { []int{} }
+pub fn bools(cmd string) []bool {
+	return eval(cmd).bools()
 }
 
-pub fn (r Res) bools() []bool {
-	return if r is []bool { r } else { []bool{} }
+pub fn ints(cmd string) []int {
+	return eval(cmd).ints()
 }
 
-pub fn (r Res) strings() []string {
-	return if r is []string { r } else { []string{} }
+pub fn strings(cmd string) []string {
+	return eval(cmd).strings()
 }
 
+// set variable inside main julia module
 pub fn set_f64(var string, val f64) {
 	val_jl := C.jl_box_float64(val)
 	C.vj_assign(var.str, val_jl)
@@ -204,6 +205,50 @@ pub fn set_strings(var string, arr []string) {
 		C.jl_arrayset(arr_jl, C.jl_cstr_to_string(e.str), i)
 	}
 	C.vj_assign(var.str, arr_jl)
+}
+
+
+type Res = []bool | []f32 | []f64 | []int | []string | bool | f32 | f64 | int | string
+
+pub fn (r Res) f64() f64 {
+	return if r is f64 { r } else { 0.0 }
+}
+
+pub fn (r Res) f32() f32 {
+	return if r is f32 { r } else { f32(0) }
+}
+
+
+pub fn (r Res) int() int {
+	return if r is int { r } else { 0 }
+}
+
+pub fn (r Res) bool() bool {
+	return if r is bool { r } else { false }
+}
+
+pub fn (r Res) string() string {
+	return if r is string { r } else { '' }
+}
+
+pub fn (r Res) f64s() []f64 {
+	return if r is []f64 { r } else { []f64{} }
+}
+
+pub fn (r Res) f32s() []f32 {
+	return if r is []f32 { r } else { []f32{} }
+}
+
+pub fn (r Res) ints() []int {
+	return if r is []int { r } else { []int{} }
+}
+
+pub fn (r Res) bools() []bool {
+	return if r is []bool { r } else { []bool{} }
+}
+
+pub fn (r Res) strings() []string {
+	return if r is []string { r } else { []string{} }
 }
 
 /*
