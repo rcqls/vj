@@ -6,6 +6,7 @@
 Set the environment variables JULIA_CFLAGS, JULIA_CFLAGS_BIS and JULIA_LDFLAGS.
 
 ```bash
+## julia is supposed to be in your PATH
 . ./build.sh
 ```
 
